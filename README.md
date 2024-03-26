@@ -20,3 +20,5 @@ temporal_docker workflow start \
 ```
 
 In the terminal with worker, you should see something happening. You should also be able to see your workflows at http://localhost:8080/namespaces/default/workflows.
+
+Even without the last step, `SyncDataFromBob` workflow will be executed every minute.
