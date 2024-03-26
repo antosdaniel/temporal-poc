@@ -10,15 +10,14 @@ docker compose down && docker compose up
 ```bash
 go run ./paydetails
 ```
-- In separate terminal, start workflow
+
+Out-of-the-box, `SyncDataFromBob` workflow will be executed every minute, and two `PushPayDetails` when you start a worker.
+You should also be able to see your workflows at http://localhost:8080/namespaces/default/workflows.
+
+You can schedule additional workflows like this:
 ```bash
-alias temporal_docker="docker exec temporal-admin-tools temporal"
-temporal_docker workflow start \
- --task-queue backgroundcheck-boilerplate-task-queue-local \
- --type BackgroundCheck \
- --input '"555-55-5555"'
+docker exec temporal-admin-tools temporal workflow start \
+ --task-queue default \
+ --type PushPayDetails \
+ --input '{"CompanyID": "company-id", "PayslipID": "payslip-id"}'
 ```
-
-In the terminal with worker, you should see something happening. You should also be able to see your workflows at http://localhost:8080/namespaces/default/workflows.
-
-Even without the last step, `SyncDataFromBob` workflow will be executed every minute.

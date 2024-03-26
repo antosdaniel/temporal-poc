@@ -14,7 +14,7 @@ import (
 	"go.temporal.io/sdk/worker"
 )
 
-const taskQueue = "backgroundcheck-boilerplate-task-queue-local"
+const taskQueue = "default"
 
 func main() {
 	fmt.Println("Starting worker...")
@@ -37,6 +37,9 @@ func main() {
 	w := worker.New(temporalClient, taskQueue, worker.Options{})
 	registerWorkflows(w)
 
+	go pushPayDayDetails(ctx, temporalClient)
+	go pushPayDayDetails(ctx, temporalClient)
+
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
 		log.Fatalln("Unable to start the Worker Process", err)
@@ -45,13 +48,16 @@ func main() {
 
 func registerWorkflows(w worker.Worker) {
 	// Workflows
-	w.RegisterWorkflow(workflows.BackgroundCheck)
 	w.RegisterWorkflow(workflows.SyncDataFromBob)
+	w.RegisterWorkflow(workflows.PushPayDetails)
 
 	// Activities
-	w.RegisterActivity(workflows.SSNTraceActivity)
 	w.RegisterActivity(workflows.PullData)
 	w.RegisterActivity(workflows.StoreData)
+	w.RegisterActivity(workflows.PushPayDetailsToBob)
+	w.RegisterActivity(workflows.MarkPayDetailsAsBeingSent)
+	w.RegisterActivity(workflows.MarkPayDetailsAsFailed)
+	w.RegisterActivity(workflows.MarkPayDetailsAsSent)
 }
 
 func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
@@ -78,4 +84,20 @@ func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
 
 func alreadyScheduled(err error) bool {
 	return errors.Is(err, temporal.ErrScheduleAlreadyRunning)
+}
+
+func pushPayDayDetails(ctx context.Context, c client.Client,) {
+	input := workflows.PushPayDetailsInput{
+		CompanyID: "company-id",
+		PayslipID: "payslip-id",
+	}
+	workflowOptions := client.StartWorkflowOptions{
+		ID:                    fmt.Sprintf("push-pay-details-%s-%s", input.CompanyID, input.PayslipID),
+		TaskQueue:             taskQueue,
+		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING,
+	}
+	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.PushPayDetails, input)
+	if err != nil {
+		log.Fatalln("Unable to push pay details", err)
+	}
 }

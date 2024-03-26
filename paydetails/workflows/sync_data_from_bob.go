@@ -8,6 +8,8 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+// SyncDataFromBob is just an example. It probably is not a good idea to break sync into two activities, as all
+// of this input/output data would be stored in Temporal's database.
 func SyncDataFromBob(ctx workflow.Context) error {
 	activityOptions := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Second,
