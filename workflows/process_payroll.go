@@ -25,13 +25,17 @@ func ProcessPayroll(ctx workflow.Context, payrollID string) error {
 		return nil
 	}
 
+	// While we process FPS, we start processing payments.
+	processPayments := workflow.ExecuteChildWorkflow(ctx, ProcessPayments, payrollID)
+
+	// Report FPS.
 	var fpsReference FPSReportReference
 	err = workflow.ExecuteActivity(ctx, ReportFPS, payrollID).Get(ctx, &fpsReference)
 	if err != nil {
 		return err
 	}
 
-	// HMRC can take its sweet time to validate FPS.
+	// HMRC can take its sweet time to validate FPS. We await until it tells us if FPS was successful or not.
 	// In realistic scenario, we would probably start this in a separate workflow, so it doesn't block other actions.
 	checkStatusCtx := workflow.WithRetryPolicy(ctx, temporal.RetryPolicy{
 		MaximumInterval: time.Second,
@@ -60,13 +64,19 @@ func ProcessPayroll(ctx workflow.Context, payrollID string) error {
 		break
 	}
 
+	// We are pretending that after successful FPS submission, we send payslips to employees.
 	// Again, it probably would be its own workflow.
 	err = workflow.ExecuteActivity(checkStatusCtx, SendDocuments, payrollID).Get(checkStatusCtx, nil)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return workflow.Await(ctx, func() bool {
+		if !processPayments.IsReady() {
+			return false
+		}
+		return true
+	})
 }
 
 func CanPayrollBeProcessed(_ context.Context, payrollID string) (bool, error) {
