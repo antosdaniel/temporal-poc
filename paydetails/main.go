@@ -47,17 +47,18 @@ func main() {
 }
 
 func registerWorkflows(w worker.Worker) {
-	// Workflows
+	// Very simple example. Probably not the best case though. But I wanted to show cron scheduling.
 	w.RegisterWorkflow(workflows.SyncDataFromBob)
-	w.RegisterWorkflow(workflows.PushPayDetails)
-
-	// Activities
 	w.RegisterActivity(workflows.PullData)
 	w.RegisterActivity(workflows.StoreData)
+
+	// Pushing pay details in a *similar* way we did doc-sender. A lot less plumbing!
+	w.RegisterWorkflow(workflows.PushPayDetails)
 	w.RegisterActivity(workflows.PushPayDetailsToBob)
 	w.RegisterActivity(workflows.MarkPayDetailsAsBeingSent)
 	w.RegisterActivity(workflows.MarkPayDetailsAsFailed)
 	w.RegisterActivity(workflows.MarkPayDetailsAsSent)
+
 }
 
 func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
