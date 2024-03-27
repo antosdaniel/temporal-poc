@@ -39,6 +39,7 @@ func main() {
 
 	go pushPayDayDetails(ctx, temporalClient)
 	go pushPayDayDetails(ctx, temporalClient)
+	go processPayroll(ctx, temporalClient)
 
 	err = w.Run(worker.InterruptCh())
 	if err != nil {
@@ -59,6 +60,13 @@ func registerWorkflows(w worker.Worker) {
 	w.RegisterActivity(workflows.MarkPayDetailsAsFailed)
 	w.RegisterActivity(workflows.MarkPayDetailsAsSent)
 
+	// A lot more complicated process.
+	w.RegisterWorkflow(workflows.ProcessPayroll)
+	w.RegisterActivity(workflows.CanPayrollBeProcessed)
+	w.RegisterActivity(workflows.ReportFPS)
+	w.RegisterActivity(workflows.CheckFPSReport)
+	w.RegisterActivity(workflows.MarkFPSAsSuccessful)
+	w.RegisterActivity(workflows.SendDocuments)
 }
 
 func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
@@ -98,6 +106,19 @@ func pushPayDayDetails(ctx context.Context, c client.Client,) {
 		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING,
 	}
 	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.PushPayDetails, input)
+	if err != nil {
+		log.Fatalln("Unable to push pay details", err)
+	}
+}
+
+func processPayroll(ctx context.Context, c client.Client,) {
+	payrollID := "payroll-id"
+	workflowOptions := client.StartWorkflowOptions{
+		ID:                    fmt.Sprintf("process-payroll-%s", payrollID),
+		TaskQueue:             taskQueue,
+		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY,
+	}
+	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.ProcessPayroll, payrollID)
 	if err != nil {
 		log.Fatalln("Unable to push pay details", err)
 	}

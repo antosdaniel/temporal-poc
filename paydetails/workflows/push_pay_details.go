@@ -2,9 +2,7 @@ package workflows
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand/v2"
 	"time"
 
 	"go.temporal.io/sdk/temporal"
@@ -81,10 +79,7 @@ func pullData(companyID, payslipID string) (PayDetails, error) {
 
 func PushPayDetailsToBob(ctx context.Context, payDetails PayDetails) error {
 	time.Sleep(time.Second)
-	if rand.IntN(3) == 0 { // 33% of the times succeeds
-		return nil
-	}
-	return errors.New("failed to push pay details to Bob")
+	return failXOutOf10Times(3)
 }
 
 func MarkPayDetailsAsBeingSent(ctx context.Context, payDetails PayDetails) error {
