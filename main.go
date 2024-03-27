@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"temporal-poc/paydetails/workflows"
+	workflows2 "temporal-poc/workflows"
 
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
@@ -49,24 +49,24 @@ func main() {
 
 func registerWorkflows(w worker.Worker) {
 	// Very simple example. Probably not the best case though. But I wanted to show cron scheduling.
-	w.RegisterWorkflow(workflows.SyncDataFromBob)
-	w.RegisterActivity(workflows.PullData)
-	w.RegisterActivity(workflows.StoreData)
+	w.RegisterWorkflow(workflows2.SyncDataFromBob)
+	w.RegisterActivity(workflows2.PullData)
+	w.RegisterActivity(workflows2.StoreData)
 
 	// Pushing pay details in a *similar* way we did doc-sender. A lot less plumbing!
-	w.RegisterWorkflow(workflows.PushPayDetails)
-	w.RegisterActivity(workflows.PushPayDetailsToBob)
-	w.RegisterActivity(workflows.MarkPayDetailsAsBeingSent)
-	w.RegisterActivity(workflows.MarkPayDetailsAsFailed)
-	w.RegisterActivity(workflows.MarkPayDetailsAsSent)
+	w.RegisterWorkflow(workflows2.PushPayDetails)
+	w.RegisterActivity(workflows2.PushPayDetailsToBob)
+	w.RegisterActivity(workflows2.MarkPayDetailsAsBeingSent)
+	w.RegisterActivity(workflows2.MarkPayDetailsAsFailed)
+	w.RegisterActivity(workflows2.MarkPayDetailsAsSent)
 
 	// A lot more complicated process.
-	w.RegisterWorkflow(workflows.ProcessPayroll)
-	w.RegisterActivity(workflows.CanPayrollBeProcessed)
-	w.RegisterActivity(workflows.ReportFPS)
-	w.RegisterActivity(workflows.CheckFPSReport)
-	w.RegisterActivity(workflows.MarkFPSAsSuccessful)
-	w.RegisterActivity(workflows.SendDocuments)
+	w.RegisterWorkflow(workflows2.ProcessPayroll)
+	w.RegisterActivity(workflows2.CanPayrollBeProcessed)
+	w.RegisterActivity(workflows2.ReportFPS)
+	w.RegisterActivity(workflows2.CheckFPSReport)
+	w.RegisterActivity(workflows2.MarkFPSAsSuccessful)
+	w.RegisterActivity(workflows2.SendDocuments)
 }
 
 func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
@@ -77,7 +77,7 @@ func registerSchedules(ctx context.Context, c client.ScheduleClient) error {
 		},
 		Action: &client.ScheduleWorkflowAction{
 			ID:        "sync-data-from-bob-every-minute",
-			Workflow:  workflows.SyncDataFromBob,
+			Workflow:  workflows2.SyncDataFromBob,
 			TaskQueue: taskQueue,
 		},
 		Overlap: enums.SCHEDULE_OVERLAP_POLICY_SKIP,
@@ -96,7 +96,7 @@ func alreadyScheduled(err error) bool {
 }
 
 func pushPayDayDetails(ctx context.Context, c client.Client,) {
-	input := workflows.PushPayDetailsInput{
+	input := workflows2.PushPayDetailsInput{
 		CompanyID: "company-id",
 		PayslipID: "payslip-id",
 	}
@@ -105,7 +105,7 @@ func pushPayDayDetails(ctx context.Context, c client.Client,) {
 		TaskQueue:             taskQueue,
 		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING,
 	}
-	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.PushPayDetails, input)
+	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows2.PushPayDetails, input)
 	if err != nil {
 		log.Fatalln("Unable to push pay details", err)
 	}
@@ -118,7 +118,7 @@ func processPayroll(ctx context.Context, c client.Client,) {
 		TaskQueue:             taskQueue,
 		WorkflowIDReusePolicy: enums.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY,
 	}
-	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows.ProcessPayroll, payrollID)
+	_, err := c.ExecuteWorkflow(ctx, workflowOptions, workflows2.ProcessPayroll, payrollID)
 	if err != nil {
 		log.Fatalln("Unable to push pay details", err)
 	}

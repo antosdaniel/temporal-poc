@@ -8,7 +8,7 @@ docker compose down && docker compose up
 ```
 - In separate terminal, start worker
 ```bash
-go run ./paydetails
+go run .
 ```
 
 Out-of-the-box, `SyncDataFromBob` workflow will be executed every minute, and two `PushPayDetails` when you start a worker.
